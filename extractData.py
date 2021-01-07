@@ -173,6 +173,23 @@ def extract_roi():
             print('Extracting labelled persons from {0} starting at index {1}.'.format(filePath, idxStart))
             idxStart = extract_persons(filePath, outputFolderPath, idxStart)
 
+# color = (0, 0, 0) for white? it's in RGB
+def add_padding(img, width, height, color):
+    # read image
+    ht, wd, cc= img.shape
+
+    # create new image of desired size and color for padding
+    result = np.full((height,width,cc), color, dtype=np.uint8)
+
+    # compute center offset
+    xx = (width - wd) // 2
+    yy = (height - ht) // 2
+
+    # copy img image into center of result image
+    result[yy:yy+ht, xx:xx+wd] = img
+
+    return result
+
 
 def extract_detected_persons():
     csvFilePath = 'C:\\Users\\reyl2\\Documents\\src\\arup\\CentralFootbridge_190227-0723-0823_15fps_tracked.csv'
@@ -196,7 +213,7 @@ def extract_detected_persons():
 
     # Open up vid capture to get frame images:
     vid_cap = cv2.VideoCapture(vidFilePath)
-    total_frames = 5 #int(vid_cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    total_frames = int(vid_cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
     curr_frame = 0
     while curr_frame <= total_frames:
@@ -209,6 +226,8 @@ def extract_detected_persons():
                 print('Cropping detected person {0} in frame {1}'.format(id, curr_frame))
                 p = frame_data[frame_data['id'] == id]
                 
+                if len(p) > 1:
+                    p = p.iloc[0]
                 xmin = int(p['mid-x'] - 0.5*p['width'])
                 xmax = int(p['mid-x'] + 0.5*p['width'])
                 ymin = int(p['mid-y'] - 0.5*p['height'])
