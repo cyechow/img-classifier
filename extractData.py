@@ -1,0 +1,188 @@
+import os
+import xml.etree.ElementTree as ET
+import cv2
+
+import pandas as pd
+import numpy as np
+import random
+from shutil import copyfile
+
+
+def extract_persons(fullFilePath, outputFolderPath, idxStart):
+    filename, ext = os.path.splitext(fullFilePath)
+
+    # Read in image:
+    img = cv2.imread(fullFilePath)
+
+    # XML file containing the labels with bounding boxes:
+    xmlfile = filename + '.xml'
+
+    print(xmlfile)
+    if os.path.exists(xmlfile):
+        xmlTree = ET.parse(xmlfile)
+        xmlRoot = xmlTree.getroot()
+
+
+        for obj in xmlRoot.findall('object'):
+            isMale = obj.find('name').text == 'male'
+            isFemale = obj.find('name').text == 'female'
+
+            if isMale or isFemale:
+                bboxElement = obj.find('bndbox')
+                xmin = int(bboxElement.find('xmin').text)
+                xmax = int(bboxElement.find('xmax').text)
+                ymin = int(bboxElement.find('ymin').text)
+                ymax = int(bboxElement.find('ymax').text)
+
+                labelledImg = img[ymin:ymax, xmin:xmax]
+                if isMale:
+                    imgPath = os.path.join(outputFolderPath, 'male')
+                else:
+                    imgPath = os.path.join(outputFolderPath, 'female')
+
+                if not os.path.exists(imgPath):
+                    os.mkdir(imgPath)
+
+                imgPath = os.path.join(imgPath, str(idxStart) + '.jpg')
+                cv2.imwrite(imgPath, labelledImg)
+                idxStart += 1
+
+    return idxStart
+
+def aggregate_to_csv(folderPath, outputFolderPath, train_percentage):
+    annotation_files = os.listdir(folderPath) 
+
+    # Get total number of files to pull for training:
+    nFiles = len(annotation_files)
+    nTrain = round(train_percentage*nFiles)
+    idxTrain = random.sample(range(0,nFiles-1),nTrain)
+
+    #dir_paths_validate, image_names_validate, cell_type_validate, xmin_array_validate, xmax_array_validate, ymin_array_validate, ymax_array_validate = [], [], [], [], [], [], []
+    #dir_paths_train, image_names_train, cell_type_train, xmin_array_train, xmax_array_train, ymin_array_train, ymax_array_train = [], [], [], [], [], [], []
+    dir_paths_train, file_names_train, labels_train, xmin_array_train, xmax_array_train, ymin_array_train, ymax_array_train = [], [], [], [], [], [], []
+    dir_paths_validate, file_names_validate, labels_validate, xmin_array_validate, xmax_array_validate, ymin_array_validate, ymax_array_validate = [], [], [], [], [], [], []
+
+    # Get the parent dir:
+    parentDir = os.path.dirname(folderPath.strip("\\"))
+
+    # Make directories to store the separated images:
+    trainImagesDir = os.path.join(outputFolderPath,'train_images')
+    validateImagesDir = os.path.join(outputFolderPath,'validate_images')
+    if not os.path.exists(trainImagesDir):
+        os.mkdir(trainImagesDir)
+    if not os.path.exists(validateImagesDir):
+        os.mkdir(validateImagesDir)
+
+    i = 0
+    for file in annotation_files:
+        print('Extracting from {0}'.format(file))
+        xmlTree = ET.parse(os.path.join(folderPath,file))
+        xmlRoot = xmlTree.getroot()
+
+        imgRootFolder = xmlRoot.find('folder').text
+        imgName = xmlRoot.find('filename').text
+
+        for obj in xmlRoot.findall('object'):
+            label = obj.find('name').text
+            bboxElement = obj.find('bndbox')
+            xmin = int(bboxElement.find('xmin').text)
+            xmax = int(bboxElement.find('xmax').text)
+            ymin = int(bboxElement.find('ymin').text)
+            ymax = int(bboxElement.find('ymax').text)
+
+            # Store info:
+            if i in idxTrain:
+                dir_paths_train.append(imgRootFolder)
+                #image_names_train.append(imgName)
+                file_names_train.append(imgName)
+                #cell_type_train.append(label)
+                labels_train.append(label)
+                xmin_array_train.append(xmin)
+                xmax_array_train.append(xmax)
+                ymin_array_train.append(ymin)
+                ymax_array_train.append(ymax)
+            else:
+                dir_paths_validate.append(imgRootFolder)
+                #image_names_validate.append(imgName)
+                file_names_validate.append(imgName)
+                #cell_type_validate.append(label)
+                labels_validate.append(label)
+                xmin_array_validate.append(xmin)
+                xmax_array_validate.append(xmax)
+                ymin_array_validate.append(ymin)
+                ymax_array_validate.append(ymax)
+        
+        # Copy the image into the respective directory:
+        imgFolderPath = os.path.join(parentDir,imgRootFolder)
+        if i in idxTrain:
+            copyfile(os.path.join(imgFolderPath,imgName), os.path.join(trainImagesDir,imgName))
+        else:
+            copyfile(os.path.join(imgFolderPath,imgName), os.path.join(validateImagesDir,imgName))
+
+        i = i + 1
+
+    #d_train = {'dir_path': np.array(dir_paths_train), 'image_names': np.array(image_names_train), 'cell_type': np.array(cell_type_train), 'xmin': np.array(xmin_array_train), 'xmax': np.array(xmax_array_train), 'ymin': np.array(ymin_array_train), 'ymax': np.array(ymax_array_train) }
+    #d_validate = {'dir_path': np.array(dir_paths_validate), 'image_names': np.array(image_names_validate), 'cell_type': np.array(cell_type_validate), 'xmin': np.array(xmin_array_validate), 'xmax': np.array(xmax_array_validate), 'ymin': np.array(ymin_array_validate), 'ymax': np.array(ymax_array_validate) }
+    d_train = {'dir_path': np.array(dir_paths_train), 'file_name': np.array(file_names_train), 'label': np.array(labels_train), 'xmin': np.array(xmin_array_train), 'xmax': np.array(xmax_array_train), 'ymin': np.array(ymin_array_train), 'ymax': np.array(ymax_array_train) }
+    d_validate = {'dir_path': np.array(dir_paths_validate), 'file_name': np.array(file_names_validate), 'label': np.array(labels_validate), 'xmin': np.array(xmin_array_validate), 'xmax': np.array(xmax_array_validate), 'ymin': np.array(ymin_array_validate), 'ymax': np.array(ymax_array_validate) }
+    df_train = pd.DataFrame(data=d_train)
+    df_validate = pd.DataFrame(data=d_validate)
+    
+    df_train.to_csv(os.path.join(outputFolderPath, 'train.csv'))
+    df_validate.to_csv(os.path.join(outputFolderPath, 'validate.csv'))
+    
+    return df_train, df_validate
+
+
+def save_formatted_data(df_train, outputFolderPath):
+    # For Faster R-CNN implemented in https://github.com/kbardool/keras-frcnn.git, the format is filepath,x1,y1,x2,y2,class_name
+    data = pd.DataFrame()
+    #data['format'] = df_train['image_names']
+    data['format'] = df_train['file_name']
+
+    # The images will be placed in a 'train_images' folder in the keras-frcnn clone repo:
+    for i in range(data.shape[0]):
+        data['format'][i] = 'train_images/' + data['format'][i]
+
+    for i in range(data.shape[0]):
+        data['format'][i] = data['format'][i] + ',' + str(df_train['xmin'][i]) + ',' + str(df_train['ymin'][i]) + ',' + str(df_train['xmax'][i]) + ',' + str(df_train['ymax'][i]) + ',' + df_train['label'][i]
+
+    data.to_csv(os.path.join(outputFolderPath, 'annotate.txt'), header=None, index=None, sep=' ')
+    
+    return data
+
+
+def extract_roi():
+    folderPath = 'C:\\Users\\reyl2\\Documents\\src\\arup\\screenshots'
+    outputFolderPath = 'C:\\Users\\reyl2\\Documents\\src\\arup\\persons'
+
+    # Make sure output folder exists:
+    if not os.path.exists(outputFolderPath):
+        os.mkdir(outputFolderPath)
+
+    files = os.listdir(folderPath)
+
+    # For every jpg or png in the folder, get the corresponding xml
+    idxStart = 0
+    for file in files:
+        name, ext = os.path.splitext(file)
+        filePath = os.path.join(folderPath, file)
+        if ext == '.jpg' or ext == '.png':
+            print('Extracting labelled persons from {0} starting at index {1}.'.format(filePath, idxStart))
+            idxStart = extract_persons(filePath, outputFolderPath, idxStart)
+
+
+def extract_detected_persons():
+    csvFilePath = 'C:\\Users\\reyl2\\Documents\\src\\arup\\190228_CentralFootbridge_1800-1900_15fps_final.csv'
+    vidFilePath = 'C:\\Users\\reyl2\\Documents\\src\\arup\\CentralFootbridge_190228-0723-0823_15fps_tracked.MP4'
+
+    df = pd.read_csv(csvFilePath)
+
+if __name__ == '__main__':
+    folderPath = 'C:\\Users\\reyl2\\Documents\\src\\arup\\Annotations\\'
+    outputFolderPath = 'C:\\Users\\reyl2\\Documents\\src\\arup\\keras-fcrnn\\'
+
+    df_train, df_validate = aggregate_to_csv(folderPath, outputFolderPath, 0.8)
+    data_formatted = save_formatted_data(df_train, outputFolderPath)
+    
+    df_train['label'].value_counts()
