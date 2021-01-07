@@ -177,6 +177,7 @@ def extract_roi():
 def extract_detected_persons():
     csvFilePath = 'C:\\Users\\reyl2\\Documents\\src\\arup\\190228_CentralFootbridge_1800-1900_15fps_final.csv'
     vidFilePath = 'C:\\Users\\reyl2\\Documents\\src\\arup\\CentralFootbridge_190228-0723-0823_15fps_tracked.MP4'
+    outputFilePath = 'C:\\Users\\reyl2\\Documents\\src\\arup\\extractions\\'
 
     df = pd.read_csv(csvFilePath)
 
