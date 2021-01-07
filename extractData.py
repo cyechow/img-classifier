@@ -208,10 +208,11 @@ def extract_detected_persons():
             for id in frame_data['id']:
                 print('Cropping detected person {0} in frame {1}'.format(id, curr_frame))
                 p = frame_data[frame_data['id'] == id]
+                
                 xmin = int(p['mid-x'] - 0.5*p['width'])
                 xmax = int(p['mid-x'] + 0.5*p['width'])
-                ymin = int(p['mid-x'] - 0.5*p['height'])
-                ymax = int(p['mid-x'] + 0.5*p['height'])
+                ymin = int(p['mid-y'] - 0.5*p['height'])
+                ymax = int(p['mid-y'] + 0.5*p['height'])
 
                 img_cropped = img_frame[ymin:ymax, xmin:xmax]
                 img_path = os.path.join(outputFolderPath, str(id))
