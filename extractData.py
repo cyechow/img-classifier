@@ -84,33 +84,35 @@ def aggregate_to_csv(folderPath, outputFolderPath, train_percentage):
 
         for obj in xmlRoot.findall('object'):
             label = obj.find('name').text
-            bboxElement = obj.find('bndbox')
-            xmin = int(bboxElement.find('xmin').text)
-            xmax = int(bboxElement.find('xmax').text)
-            ymin = int(bboxElement.find('ymin').text)
-            ymax = int(bboxElement.find('ymax').text)
+            # Only take the male and female labels:
+            if label == 'male' or label == 'female':
+                bboxElement = obj.find('bndbox')
+                xmin = int(bboxElement.find('xmin').text)
+                xmax = int(bboxElement.find('xmax').text)
+                ymin = int(bboxElement.find('ymin').text)
+                ymax = int(bboxElement.find('ymax').text)
 
-            # Store info:
-            if i in idxTrain:
-                dir_paths_train.append(imgRootFolder)
-                #image_names_train.append(imgName)
-                file_names_train.append(imgName)
-                #cell_type_train.append(label)
-                labels_train.append(label)
-                xmin_array_train.append(xmin)
-                xmax_array_train.append(xmax)
-                ymin_array_train.append(ymin)
-                ymax_array_train.append(ymax)
-            else:
-                dir_paths_validate.append(imgRootFolder)
-                #image_names_validate.append(imgName)
-                file_names_validate.append(imgName)
-                #cell_type_validate.append(label)
-                labels_validate.append(label)
-                xmin_array_validate.append(xmin)
-                xmax_array_validate.append(xmax)
-                ymin_array_validate.append(ymin)
-                ymax_array_validate.append(ymax)
+                # Store info:
+                if i in idxTrain:
+                    dir_paths_train.append(imgRootFolder)
+                    #image_names_train.append(imgName)
+                    file_names_train.append(imgName)
+                    #cell_type_train.append(label)
+                    labels_train.append(label)
+                    xmin_array_train.append(xmin)
+                    xmax_array_train.append(xmax)
+                    ymin_array_train.append(ymin)
+                    ymax_array_train.append(ymax)
+                else:
+                    dir_paths_validate.append(imgRootFolder)
+                    #image_names_validate.append(imgName)
+                    file_names_validate.append(imgName)
+                    #cell_type_validate.append(label)
+                    labels_validate.append(label)
+                    xmin_array_validate.append(xmin)
+                    xmax_array_validate.append(xmax)
+                    ymin_array_validate.append(ymin)
+                    ymax_array_validate.append(ymax)
         
         # Copy the image into the respective directory:
         imgFolderPath = os.path.join(parentDir,imgRootFolder)
@@ -178,6 +180,50 @@ def extract_detected_persons():
 
     df = pd.read_csv(csvFilePath)
 
+    # Columns
+    # time,frame,id,confidence,mid-x,mid-y,width,height,speed,direction,density around ppl,zone,# of ppl in zone 1 and 2,# of ppl in zone 1,# of ppl in zone 2,# of ppl across line in zone 1,# of ppl across line in zone 2,# of ppl going downwards in zone 1,# of ppl going downwards in zone 2,all_time_mean_speed,time interval
+
+    # We only want: time, frame, id, mid-x, mid-y, width, height
+    df_sub = pd.DataFrame()
+    df_sub['time'] = df['time']
+    df_sub['frame'] = df['frame']
+    df_sub['id'] = df['id']
+    df_sub['mid-x'] = df['mid-x']
+    df_sub['mid-y'] = df['mid-y']
+    df_sub['width'] = df['width']
+    df_sub['height'] = df['height']
+
+    # Open up vid capture to get frame images:
+    vid_cap = cv2.VideoCapture(vidFilePath)
+    total_frames = 5 #int(vid_cap.get(cv2.CAP_PROP_FRAME_COUNT))
+
+    curr_frame = 0
+    while curr_frame <= total_frames:
+        _, img_frame = vid_cap.read()
+
+        frame_data = df_sub[df_sub['frame'] == curr_frame]
+
+        if not frame_data.empty:
+            for id in frame_data['id']:
+                print('Cropping detected person {0} in frame {1}'.format(id, curr_frame))
+                p = frame_data[frame_data['id'] == id]
+                xmin = int(p['mid-x'] - 0.5*p['width'])
+                xmax = int(p['mid-x'] + 0.5*p['width'])
+                ymin = int(p['mid-x'] - 0.5*p['height'])
+                ymax = int(p['mid-x'] + 0.5*p['height'])
+
+                img_cropped = img_frame[ymin:ymax, xmin:xmax]
+                img_path = os.path.join(outputFolderPath, str(id))
+
+                if not os.path.exists(img_path):
+                    os.mkdir(img_path)
+
+                img_path = os.path.join(img_path, str(curr_frame) + '.jpg')
+                cv2.imwrite(img_path, img_cropped)
+        curr_frame = curr_frame + 1
+
+    vid_cap.release()
+
 if __name__ == '__main__':
     folderPath = 'C:\\Users\\reyl2\\Documents\\src\\arup\\Annotations\\'
     outputFolderPath = 'C:\\Users\\reyl2\\Documents\\src\\arup\\keras-fcrnn\\'
@@ -186,3 +232,4 @@ if __name__ == '__main__':
     data_formatted = save_formatted_data(df_train, outputFolderPath)
     
     df_train['label'].value_counts()
+    df_validate['label'].value_counts()
