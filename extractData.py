@@ -127,7 +127,7 @@ def aggregate_to_csv(folderPath, outputFolderPath, train_percentage):
             copyfile(os.path.join(folderPath,file), os.path.join(trainAnnotationsDir,file))
         else:
             copyfile(os.path.join(imgFolderPath,imgName), os.path.join(validateImagesDir,imgName))
-            copyfile(os.path.join(folderPath,file), os.path.join(validationAnnotationsDir,file))
+            copyfile(os.path.join(folderPath,file), os.path.join(validateAnnotationsDir,file))
 
         i = i + 1
 
