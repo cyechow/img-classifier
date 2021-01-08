@@ -25,6 +25,10 @@
 # This assumes that the following files from the trained model are in this folder:
 #   - model_frcnn.hdf5
 #   - config.pickle
+#
+# ********************************************************************************** #
+
+from __future__ import division
 
 import os
 import pandas as pd
@@ -35,7 +39,6 @@ output_folder_path = '.\\results\\'
 # ---------------------------------------------------------------------------------- #
 # Set up the model for use
 # ---------------------------------------------------------------------------------- #
-from __future__ import division
 import os
 import cv2
 import numpy as np
@@ -119,6 +122,23 @@ def get_real_coordinates(ratio, x1, y1, x2, y2):
 	return (real_x1, real_y1, real_x2 ,real_y2)
 
 # ---------------------------------------------------------------------------------- #
+# Need to pad the screenshots:
+# color = (0, 0, 0) for black? it's in RGB
+def add_padding(img, width, height, color):
+    # read image
+    ht, wd, cc= img.shape
+
+    # create new image of desired size and color for padding
+    result = np.full((height,width,cc), color, dtype=np.uint8)
+
+    # compute center offset
+    xx = (width - wd) // 2
+    yy = (height - ht) // 2
+
+    # copy img image into center of result image
+    result[yy:yy+ht, xx:xx+wd] = img
+
+    return result
 
 if not os.path.exists(output_folder_path):
     os.mkdir(output_folder_path)
@@ -186,9 +206,10 @@ model_classifier.compile(optimizer='sgd', loss='mse')
 bbox_threshold = 0.8
 
 # Loop through every ID'd person's folder:
+os.listdir()
 for person_id in persons_dir:
     # Get person ID:
-    person_path = os.path.join(persons_dir, person_id)
+    person_path = os.path.join(extraction_folder_path, person_id)
 
     # Get all the files:
     extracted_imgs = os.listdir(person_path)
@@ -207,6 +228,8 @@ for person_id in persons_dir:
         print('Processing ID{0} at frame {1}'.format(person_id, curr_frame_num))
 
         img = cv2.imread(img_path)
+        # Pad to 1920x1080
+        img = add_padding(img, 1920, 1080, (0,0,0))
 
         X, ratio = format_img(img, C)
 
@@ -314,7 +337,7 @@ for person_id in persons_dir:
                 cv2.putText(img, textLabel, textOrg, cv2.FONT_HERSHEY_DUPLEX, 1, (0, 0, 0), 1)
 
         key_data = pd.DataFrame(data={'key': keys, 'count': nKeys, 'min_prob': minProbKeys, 'max_prob': maxProbKeys, 'avg_prob': avgProbKeys})
-        if key_data.empty:
+        if not key_data.empty:
             # No classification, log
             prevalent_key = key_data[key_data['count'] == max(key_data['count'])]
             if prevalent_key.empty:
@@ -333,8 +356,8 @@ for person_id in persons_dir:
         
         print(all_dets)
         
-        # Write image back to the directory it came from, append '_result' at the end:
-        cv2.imwrite('{0}/{1}_result.png'.format(persons_dir,curr_frame_num),img)
+        # Write image to the output folder in the subdirectory with ID, append '_result' at the end:
+        cv2.imwrite('{0}/{1}_result.png'.format(os.path.join(output_folder_path,person_id),curr_frame_num),img)
 
 
 # Dump data into dataframe and save:

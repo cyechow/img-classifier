@@ -181,7 +181,7 @@ def extract_roi():
             print('Extracting labelled persons from {0} starting at index {1}.'.format(filePath, idxStart))
             idxStart = extract_persons(filePath, outputFolderPath, idxStart)
 
-# color = (0, 0, 0) for white? it's in RGB
+# color = (0, 0, 0) for black? it's in RGB
 def add_padding(img, width, height, color):
     # read image
     ht, wd, cc= img.shape
