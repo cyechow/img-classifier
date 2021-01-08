@@ -402,25 +402,24 @@ total_images = []
 total_images_labelled = []
 total_images_labelled_percentage = []
 for id in persons_dir:
-    dfp = dfc[dfc['id'] == id]
+    dfp = dfc[dfc['id'] == int(id)]
  
     # Get total images in folder:
     person_path = os.path.join(extraction_folder_path, id)
 
     # Get all the files:
     nTotal = len(os.listdir(person_path))
-
-    #if dfp.empty:
-        #print('{0} dfp is empty'.format(id))
+    
+    person_ids.append(int(id))
+    total_images.append(nTotal)
+    
+    if dfp.empty:
         # No labels
-        #person_labels.append('NA')
-        #total_images_labelled.append(0)
-        #total_images_labelled_percentage.append(0)
-    #else:
-    if not dfp.empty:
+        person_labels.append('NA')
+        total_images_labelled.append(0)
+        total_images_labelled_percentage.append(0)
+    else:
         print('Aggregating {0}'.format(id))
-        person_ids.append(id)
-        total_images.append(nTotal)
 
         nMale = sum(dfp['label'] == 'male')
         nFemale = sum(dfp['label'] == 'female')
@@ -431,7 +430,7 @@ for id in persons_dir:
         elif nMale == nFemale:
             dfp_male = dfp[dfp['label'] == 'male']
             dfp_female = dfp[dfp['label'] == 'female']
-            if dfp_male['probability'] > dfp_female:
+            if max(dfp_male['probability']) > max(dfp_female['probability']):
                 person_labels.append('male')
                 total_images_labelled.append(nMale)
                 total_images_labelled_percentage.append(nMale/nTotal)
@@ -450,5 +449,6 @@ for id in persons_dir:
 
 dfa = pd.DataFrame(data={'id':person_ids,'label':person_labels,'total_images':total_images,'total_images_labelled':total_images_labelled,'total_images_labelled_percentage':total_images_labelled_percentage})
 dfa.to_csv(os.path.join(output_folder_path,'aggregated_data.csv'))
+
 
 
