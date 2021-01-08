@@ -22,6 +22,10 @@
 #
 # Note: Images can be of formats: '.bmp', '.jpeg', '.jpg', '.png', '.tif', '.tiff'
 
+# This assumes that the following files from the trained model are in this folder:
+#   - model_frcnn.hdf5
+#   - config.pickle
+
 import os
 import pandas as pd
 
