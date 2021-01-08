@@ -19,6 +19,8 @@ person_labels = []
 total_images = []
 total_images_labelled = []
 total_images_labelled_percentage = []
+person_start_frame = []
+person_end_frame = []
 for id in persons_dir:
     dfp = dfc[dfc['id'] == int(id)]
  
@@ -38,6 +40,12 @@ for id in persons_dir:
         total_images_labelled_percentage.append(0)
     else:
         print('Aggregating {0}'.format(id))
+        
+        # Get start/end frames:
+        start_frame_num = min(dfp['frame'])
+        end_frame_num = max(dfp['frame'])
+        person_start_frame.append(start_frame_num)
+        person_end_frame.append(end_frame_num)
 
         nMale = sum(dfp['label'] == 'male')
         nFemale = sum(dfp['label'] == 'female')
@@ -65,8 +73,5 @@ for id in persons_dir:
             total_images_labelled.append(nFemale)
             total_images_labelled_percentage.append(nFemale/nTotal)
 
-dfa = pd.DataFrame(data={'id':person_ids,'label':person_labels,'total_images':total_images,'total_images_labelled':total_images_labelled,'total_images_labelled_percentage':total_images_labelled_percentage})
+dfa = pd.DataFrame(data={'id':person_ids,'label':person_labels,'total_images':total_images,'total_images_labelled':total_images_labelled,'total_images_labelled_percentage':total_images_labelled_percentage,'start_frame':start_frame_num,'end_frame':end_frame_num})
 dfa.to_csv(os.path.join(output_folder_path,'aggregated_data.csv'))
-
-
-

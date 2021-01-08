@@ -383,7 +383,7 @@ for person_id in persons_dir:
             dfc = pd.DataFrame(data={'id': person_ids, 'frame': frame_number, 'label': person_label, 'probability': person_label_probability})
             dfc.to_csv(os.path.join(output_folder_path, 'labelled_data.csv'))
         except:
-            traceback.print_exc()
+            #traceback.print_exc()
             continue
 
 
@@ -401,6 +401,8 @@ person_labels = []
 total_images = []
 total_images_labelled = []
 total_images_labelled_percentage = []
+person_start_frame = []
+person_end_frame = []
 for id in persons_dir:
     dfp = dfc[dfc['id'] == int(id)]
  
@@ -420,6 +422,12 @@ for id in persons_dir:
         total_images_labelled_percentage.append(0)
     else:
         print('Aggregating {0}'.format(id))
+        
+        # Get start/end frames:
+        start_frame_num = min(dfp['frame'])
+        end_frame_num = max(dfp['frame'])
+        person_start_frame.append(start_frame_num)
+        person_end_frame.append(end_frame_num)
 
         nMale = sum(dfp['label'] == 'male')
         nFemale = sum(dfp['label'] == 'female')
@@ -447,8 +455,39 @@ for id in persons_dir:
             total_images_labelled.append(nFemale)
             total_images_labelled_percentage.append(nFemale/nTotal)
 
-dfa = pd.DataFrame(data={'id':person_ids,'label':person_labels,'total_images':total_images,'total_images_labelled':total_images_labelled,'total_images_labelled_percentage':total_images_labelled_percentage})
+dfa = pd.DataFrame(data={'id':person_ids,'label':person_labels,'total_images':total_images,'total_images_labelled':total_images_labelled,'total_images_labelled_percentage':total_images_labelled_percentage,'start_frame':start_frame_num,'end_frame':end_frame_num})
 dfa.to_csv(os.path.join(output_folder_path,'aggregated_data.csv'))
 
 
+# ----------------------------------------------------------- #
+# Visualizations
+# ----------------------------------------------------------- #
+import matplotlib.pyplot as plt
 
+nTotalAgents = len(persons_dir)
+
+def make_autopct(values):
+    def my_autopct(pct):
+        total = sum(values)
+        val = int(round(pct*total/100.0))
+        return '{p:.2f}%  ({v:d})'.format(p=pct,v=val)
+    return my_autopct
+
+labels = 'Processed', 'Unprocessed'
+sizes = [127, 2578]
+explode = (0.1, 0)  # "explode" the processed slice. 
+colors = ['#99ff99','#66b3ff']
+
+fig1, ax1 = plt.subplots()
+ax1.pie(sizes, explode=explode, labels=labels, colors=colors, autopct=make_autopct(sizes),
+        shadow=True, startangle=45)
+ax1.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
+plt.title('Total Persons Detected')
+plt.show()
+
+labels = 'Female', 'Male'
+sizes = [dfa['label'].value_counts()['female'], dfa['label'].value_counts()['male']]
+explode = (0,0)
+colors = []
+
+# ----------------------------------------------------------- #
