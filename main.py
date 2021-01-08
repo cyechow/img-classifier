@@ -323,7 +323,8 @@ for person_id in persons_dir:
                 new_boxes, new_probs = roi_helpers.non_max_suppression_fast(bbox, np.array(probs[key]), overlap_thresh=0.5)
 
                 # Store this for decision-making:
-                keys.append(key)
+                label = str(key)
+                keys.append(label)
                 nKeys.append(len(new_boxes))
                 minProbKeys.append(min(new_probs))
                 maxProbKeys.append(max(new_probs))
@@ -359,13 +360,13 @@ for person_id in persons_dir:
                     person_label.append('NA')
                     person_label_probability.append(-1)
                 elif len(prevalent_key) == 1:
-                    person_label.append(prevalent_key['key'])
-                    person_label_probability.append(prevalent_key['avg_prob'])
+                    person_label.append(np.array(prevalent_key['key'])[0])
+                    person_label_probability.append(float(prevalent_key['avg_prob']))
                 else:
                     # Take the one with the higher average probability:
                     prevalent_key = prevalent_key[prevalent_key['avg_prob'] == max(prevalent_key['avg_prob'])]
-                    person_label.append(prevalent_key['key'])
-                    person_label_probability.append(prevalent_key['avg_prob'])
+                    person_label.append(np.array(prevalent_key['key'])[0])
+                    person_label_probability.append(float(prevalent_key['avg_prob']))
                 
                 person_ids.append(person_id)
                 frame_number.append(curr_frame_num)
@@ -399,8 +400,12 @@ person_ids = []
 person_labels = []
 total_images = []
 total_images_labelled = []
+total_images_labelled_percentage = []
 for id in persons_dir:
     dfp = dfc[dfc['id'] == id]
+ 
+    person_ids.append(id)
+
     # Get total images in folder:
     person_path = os.path.join(extraction_folder_path, person_id)
 
@@ -410,7 +415,37 @@ for id in persons_dir:
 
     if dfp.empty:
         # No labels
-        person_ids.append(id)
         person_labels.append('NA')
         total_images_labelled.append(0)
+        total_images_labelled_percentage.append(0)
     else:
+        nMale = sum(dfp['label'] == 'male')
+        nFemale = sum(dfp['label'] == 'female')
+        if nMale == nFemale == 0:
+            person_labels.append('NA')
+            total_images_labelled.append(0)
+            total_images_labelled_percentage.append(0)
+        elif nMale == nFemale:
+            dfp_male = dfp[dfp['label'] == 'male']
+            dfp_female = dfp[dfp['label'] == 'female']
+            if dfp_male['probability'] > dfp_female:
+                person_labels.append('male')
+                total_images_labelled.append(nMale)
+                total_images_labelled_percentage.append(nMale/nTotal)
+            else:
+                person_labels.append('female')
+                total_images_labelled.append(nFemale)
+                total_images_labelled_percentage.append(nFemale/nTotal)
+        elif nMale > nFemale:
+            person_labels.append('male')
+            total_images_labelled.append(nMale)
+            total_images_labelled_percentage.append(nMale/nTotal)
+        else:
+            person_labels.append('female')
+            total_images_labelled.append(nFemale)
+            total_images_labelled_percentage.append(nFemale/nTotal)
+
+dfa = pd.DataFrame(data={'id':person_ids,'label':person_labels,'total_images':total_images,'total_images_labelled':total_images_labelled,'total_images_labelled_percentage':total_images_labelled_percentage})
+dfa.to_csv(os.path.join(output_folder_path,'aggregated_data.csv'))
+
+
