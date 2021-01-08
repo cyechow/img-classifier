@@ -404,30 +404,33 @@ total_images_labelled_percentage = []
 for id in persons_dir:
     dfp = dfc[dfc['id'] == id]
  
-    person_ids.append(id)
-
     # Get total images in folder:
     person_path = os.path.join(extraction_folder_path, id)
 
     # Get all the files:
     nTotal = len(os.listdir(person_path))
-    total_images.append(nTotal)
 
-    if dfp.empty:
+    #if dfp.empty:
+        #print('{0} dfp is empty'.format(id))
         # No labels
-        person_labels.append('NA')
-        total_images_labelled.append(0)
-        total_images_labelled_percentage.append(0)
-    else:
-        nMale = sum(dfp['label'] == 'male\n')
-        nFemale = sum(dfp['label'] == 'female\n')
-        if nMale == nFemale == 0:
+        #person_labels.append('NA')
+        #total_images_labelled.append(0)
+        #total_images_labelled_percentage.append(0)
+    #else:
+    if not dfp.empty:
+        print('Aggregating {0}'.format(id))
+        person_ids.append(id)
+        total_images.append(nTotal)
+
+        nMale = sum(dfp['label'] == 'male')
+        nFemale = sum(dfp['label'] == 'female')
+        if nMale == 0 and nFemale == 0:
             person_labels.append('NA')
             total_images_labelled.append(0)
             total_images_labelled_percentage.append(0)
         elif nMale == nFemale:
-            dfp_male = dfp[dfp['label'] == 'male\n']
-            dfp_female = dfp[dfp['label'] == 'female\n']
+            dfp_male = dfp[dfp['label'] == 'male']
+            dfp_female = dfp[dfp['label'] == 'female']
             if dfp_male['probability'] > dfp_female:
                 person_labels.append('male')
                 total_images_labelled.append(nMale)
