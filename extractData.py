@@ -67,11 +67,17 @@ def aggregate_to_csv(folderPath, outputFolderPath, train_percentage):
 
     # Make directories to store the separated images:
     trainImagesDir = os.path.join(outputFolderPath,'train_images')
+    trainAnnotationsDir = os.path.join(outputFolderPath,'train_annotations')
     validateImagesDir = os.path.join(outputFolderPath,'validate_images')
+    validateAnnotationsDir = os.path.join(outputFolderPath,'validate_annotations')
     if not os.path.exists(trainImagesDir):
         os.mkdir(trainImagesDir)
+    if not os.path.exists(trainAnnotationsDir):
+        os.mkdir(trainAnnotationsDir)
     if not os.path.exists(validateImagesDir):
         os.mkdir(validateImagesDir)
+    if not os.path.exists(validateAnnotationsDir):
+        os.mkdir(validateAnnotationsDir)
 
     i = 0
     for file in annotation_files:
@@ -118,8 +124,10 @@ def aggregate_to_csv(folderPath, outputFolderPath, train_percentage):
         imgFolderPath = os.path.join(parentDir,imgRootFolder)
         if i in idxTrain:
             copyfile(os.path.join(imgFolderPath,imgName), os.path.join(trainImagesDir,imgName))
+            copyfile(os.path.join(folderPath,file), os.path.join(trainAnnotationsDir,file))
         else:
             copyfile(os.path.join(imgFolderPath,imgName), os.path.join(validateImagesDir,imgName))
+            copyfile(os.path.join(folderPath,file), os.path.join(validationAnnotationsDir,file))
 
         i = i + 1
 
@@ -136,7 +144,7 @@ def aggregate_to_csv(folderPath, outputFolderPath, train_percentage):
     return df_train, df_validate
 
 
-def save_formatted_data(df_train, outputFolderPath):
+def save_formatted_data(df_train, filename, outputFolderPath):
     # For Faster R-CNN implemented in https://github.com/kbardool/keras-frcnn.git, the format is filepath,x1,y1,x2,y2,class_name
     data = pd.DataFrame()
     #data['format'] = df_train['image_names']
@@ -149,7 +157,7 @@ def save_formatted_data(df_train, outputFolderPath):
     for i in range(data.shape[0]):
         data['format'][i] = data['format'][i] + ',' + str(df_train['xmin'][i]) + ',' + str(df_train['ymin'][i]) + ',' + str(df_train['xmax'][i]) + ',' + str(df_train['ymax'][i]) + ',' + df_train['label'][i]
 
-    data.to_csv(os.path.join(outputFolderPath, 'annotate.txt'), header=None, index=None, sep=' ')
+    data.to_csv(os.path.join(outputFolderPath, filename), header=None, index=None, sep=' ')
     
     return data
 
@@ -231,7 +239,7 @@ if __name__ == '__main__':
     outputFolderPath = 'C:\\Users\\reyl2\\Documents\\src\\arup\\keras-fcrnn\\'
 
     df_train, df_validate = aggregate_to_csv(folderPath, outputFolderPath, 0.8)
-    data_formatted = save_formatted_data(df_train, outputFolderPath)
+    data_formatted = save_formatted_data(df_train, 'annotate.txt', outputFolderPath)
     
     df_train['label'].value_counts()
     df_validate['label'].value_counts()
